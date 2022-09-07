@@ -1,0 +1,74 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+    name: <CLName> 
+    region: ap-northeast-2 # Region
+    version: "1.22" # EKS Cluster Version
+# # Karpenter    
+    # tags:
+    #   karpenter.sh/discovery: # Cluster NAME
+
+# # Karpenter
+# karpenter:
+#   version: "0.9.0" # Karpenter Version
+#   createServiceAccount: true # ServiceAccount
+
+vpc:
+  id: "<VPC>" 
+  subnets:
+    public:
+      ap-northeast-2a: { id: <PuSubnet1> }
+      ap-northeast-2b: { id: <PuSubnet2> }
+    private:
+      ap-northeast-2a: { id: <PrSubnet1> }
+      ap-northeast-2b: { id: <PrSubnet2> }
+
+iam:
+  withOIDC: true 
+  serviceAccounts:
+    - metadata:
+        name: aws-load-balancer-controller 
+        namespace: kube-system
+      wellKnownPolicies:
+        awsLoadBalancerController: true
+    - metadata:
+        name: cluster-autoscaler
+        namespace: kube-system
+      wellKnownPolicies:
+        autoScaler: true
+
+managedNodeGroups:
+  - name: <NGName1>
+    desiredCapacity: 2
+    minSize: 2
+    maxSize: 6
+    volumeSize: 20
+    instanceType: t3.medium 
+    privateNetworking: true
+    labels:
+      app: ng-a # NodeGroup lables
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        albIngress: true
+        cloudWatch: true 
+  - name: <NGName2>
+    desiredCapacity: 2
+    minSize: 2
+    maxSize: 6
+    volumeSize: 20
+    instanceType: t3.medium
+    privateNetworking: true
+    labels:
+      app: ng-b # NodeGroup lables
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        albIngress: true
+        cloudWatch: true
+
+# Cloud Watch Logging        
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["*"]
